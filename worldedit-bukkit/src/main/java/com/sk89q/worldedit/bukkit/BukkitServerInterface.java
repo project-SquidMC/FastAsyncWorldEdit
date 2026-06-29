@@ -20,6 +20,7 @@
 package com.sk89q.worldedit.bukkit;
 
 import com.fastasyncworldedit.bukkit.util.MinecraftVersion;
+import com.fastasyncworldedit.bukkit.util.BukkitSchedulerAdapter;
 import com.fastasyncworldedit.core.configuration.Settings;
 import com.fastasyncworldedit.core.extent.processor.PlacementStateProcessor;
 import com.fastasyncworldedit.core.extent.processor.lighting.RelighterFactory;
@@ -135,7 +136,7 @@ public class BukkitServerInterface extends AbstractPlatform implements MultiUser
 
     @Override
     public int schedule(long delay, long period, Runnable task) {
-        return Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, task, delay, period);
+        return BukkitSchedulerAdapter.repeat(plugin, task, delay, period);
     }
 
     @Override
@@ -266,7 +267,11 @@ public class BukkitServerInterface extends AbstractPlatform implements MultiUser
     @Override
     public long getTickCount() {
         if (PaperLib.isPaper()) {
-            return Bukkit.getCurrentTick();
+            try {
+                return Bukkit.getCurrentTick();
+            } catch (IllegalStateException ignored) {
+                return super.getTickCount();
+            }
         }
         return super.getTickCount();
     }

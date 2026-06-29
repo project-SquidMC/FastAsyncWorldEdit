@@ -21,6 +21,7 @@ package com.sk89q.worldedit.bukkit;
 
 import com.fastasyncworldedit.core.configuration.Caption;
 import com.fastasyncworldedit.core.configuration.Settings;
+import com.fastasyncworldedit.bukkit.util.BukkitSchedulerAdapter;
 import com.fastasyncworldedit.core.util.TaskManager;
 import com.sk89q.util.StringUtil;
 import com.sk89q.wepif.VaultResolver;
@@ -72,6 +73,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class BukkitPlayer extends AbstractPlayerActor {
 
@@ -79,6 +81,7 @@ public class BukkitPlayer extends AbstractPlayerActor {
 
     private final Player player;
     private final WorldEditPlugin plugin;
+    private final AtomicInteger foliaRunningCount = new AtomicInteger();
     //FAWE start
     private PermissionAttachment permAttachment = null;
 
@@ -332,6 +335,27 @@ public class BukkitPlayer extends AbstractPlayerActor {
 
     public Player getPlayer() {
         return player;
+    }
+
+    @Override
+    public boolean runAction(Runnable ifFree, boolean checkFree, boolean async) {
+        if (!BukkitSchedulerAdapter.isFolia()) {
+            return super.runAction(ifFree, checkFree, async);
+        }
+        if (checkFree && foliaRunningCount.get() != 0) {
+            return false;
+        }
+        BukkitSchedulerAdapter.entityTask(plugin, player, () -> {
+            try {
+                foliaRunningCount.incrementAndGet();
+                ifFree.run();
+            } catch (Throwable throwable) {
+                LOGGER.error("Error occurred executing player action", throwable);
+            } finally {
+                foliaRunningCount.decrementAndGet();
+            }
+        });
+        return true;
     }
 
     @Override
