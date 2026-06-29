@@ -81,6 +81,7 @@ public class Fawe {
     private static final Logger LOGGER = LogManagerCompat.getLogger();
 
     private static Fawe instance;
+    private static final ThreadLocal<Integer> MAIN_THREAD_OVERRIDES = ThreadLocal.withInitial(() -> 0);
 
     /**
      * The ticks-per-second timer.
@@ -208,7 +209,21 @@ public class Fawe {
     }
 
     public static boolean isMainThread() {
-        return instance == null || instance.thread == Thread.currentThread();
+        return instance == null || instance.thread == Thread.currentThread() || MAIN_THREAD_OVERRIDES.get() > 0;
+    }
+
+    public static void runAsMainThread(Runnable runnable) {
+        MAIN_THREAD_OVERRIDES.set(MAIN_THREAD_OVERRIDES.get() + 1);
+        try {
+            runnable.run();
+        } finally {
+            int depth = MAIN_THREAD_OVERRIDES.get() - 1;
+            if (depth == 0) {
+                MAIN_THREAD_OVERRIDES.remove();
+            } else {
+                MAIN_THREAD_OVERRIDES.set(depth);
+            }
+        }
     }
 
     /**

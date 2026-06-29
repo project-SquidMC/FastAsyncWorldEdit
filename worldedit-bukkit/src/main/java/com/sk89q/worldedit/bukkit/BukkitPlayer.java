@@ -166,7 +166,7 @@ public class BukkitPlayer extends AbstractPlayerActor {
     public void giveItem(BaseItemStack itemStack) {
         final PlayerInventory inv = player.getInventory();
         ItemStack newItem = BukkitAdapter.adapt(itemStack);
-        TaskManager.taskManager().sync(() -> {
+        Runnable giveItem = () -> {
             if (itemStack.getType().id().equalsIgnoreCase(WorldEdit.getInstance().getConfiguration().wandItem)) {
                 inv.remove(newItem);
             }
@@ -187,6 +187,13 @@ public class BukkitPlayer extends AbstractPlayerActor {
                 }
             }
             player.updateInventory();
+        };
+        if (BukkitSchedulerAdapter.isFolia()) {
+            giveItem.run();
+            return;
+        }
+        TaskManager.taskManager().sync(() -> {
+            giveItem.run();
             return null;
         });
     }
@@ -245,6 +252,16 @@ public class BukkitPlayer extends AbstractPlayerActor {
         }
         org.bukkit.World finalWorld = world;
         //FAWE end
+        if (BukkitSchedulerAdapter.isFolia()) {
+            return player.teleport(new Location(
+                    finalWorld,
+                    pos.x(),
+                    pos.y(),
+                    pos.z(),
+                    yaw,
+                    pitch
+            ));
+        }
         return TaskManager.taskManager().sync(() -> player.teleport(new Location(
                 finalWorld,
                 pos.x(),

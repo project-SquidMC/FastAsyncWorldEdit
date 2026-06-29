@@ -1,5 +1,6 @@
 package com.fastasyncworldedit.bukkit.util;
 
+import com.fastasyncworldedit.core.Fawe;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -35,7 +36,7 @@ public final class BukkitSchedulerAdapter {
                 "runAtFixedRate",
                 new Class<?>[]{Plugin.class, Consumer.class, long.class, long.class},
                 plugin,
-                taskConsumer(runnable),
+                taskConsumer(runnable, true),
                 Math.max(1L, delay),
                 Math.max(1L, period)
         ));
@@ -50,7 +51,7 @@ public final class BukkitSchedulerAdapter {
                 "runAtFixedRate",
                 new Class<?>[]{Plugin.class, Consumer.class, long.class, long.class, TimeUnit.class},
                 plugin,
-                taskConsumer(runnable),
+                taskConsumer(runnable, false),
                 ticksToMillis(Math.max(1L, delay)),
                 ticksToMillis(Math.max(1L, period)),
                 TimeUnit.MILLISECONDS
@@ -67,7 +68,7 @@ public final class BukkitSchedulerAdapter {
                 "run",
                 new Class<?>[]{Plugin.class, Consumer.class},
                 plugin,
-                taskConsumer(runnable)
+                taskConsumer(runnable, true)
         ));
     }
 
@@ -81,7 +82,7 @@ public final class BukkitSchedulerAdapter {
                 "runNow",
                 new Class<?>[]{Plugin.class, Consumer.class},
                 plugin,
-                taskConsumer(runnable)
+                taskConsumer(runnable, false)
         ));
     }
 
@@ -95,7 +96,7 @@ public final class BukkitSchedulerAdapter {
                 "runDelayed",
                 new Class<?>[]{Plugin.class, Consumer.class, long.class},
                 plugin,
-                taskConsumer(runnable),
+                taskConsumer(runnable, true),
                 Math.max(1L, delay)
         ));
     }
@@ -110,7 +111,7 @@ public final class BukkitSchedulerAdapter {
                 "runDelayed",
                 new Class<?>[]{Plugin.class, Consumer.class, long.class, TimeUnit.class},
                 plugin,
-                taskConsumer(runnable),
+                taskConsumer(runnable, false),
                 ticksToMillis(Math.max(1L, delay)),
                 TimeUnit.MILLISECONDS
         ));
@@ -151,13 +152,16 @@ public final class BukkitSchedulerAdapter {
                 "run",
                 new Class<?>[]{Plugin.class, Consumer.class, Runnable.class},
                 plugin,
-                taskConsumer(runnable),
+                taskConsumer(runnable, true),
                 null
         ));
     }
 
-    private static Consumer<Object> taskConsumer(Runnable runnable) {
-        return ignored -> runnable.run();
+    private static Consumer<Object> taskConsumer(Runnable runnable, boolean mainThread) {
+        if (!mainThread) {
+            return ignored -> runnable.run();
+        }
+        return ignored -> Fawe.runAsMainThread(runnable);
     }
 
     private static int store(Object task) {
