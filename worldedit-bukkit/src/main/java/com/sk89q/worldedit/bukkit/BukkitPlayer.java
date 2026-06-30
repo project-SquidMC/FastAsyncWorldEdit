@@ -252,24 +252,22 @@ public class BukkitPlayer extends AbstractPlayerActor {
         }
         org.bukkit.World finalWorld = world;
         //FAWE end
-        if (BukkitSchedulerAdapter.isFolia()) {
-            return player.teleport(new Location(
-                    finalWorld,
-                    pos.x(),
-                    pos.y(),
-                    pos.z(),
-                    yaw,
-                    pitch
-            ));
-        }
-        return TaskManager.taskManager().sync(() -> player.teleport(new Location(
+        Location target = new Location(
                 finalWorld,
                 pos.x(),
                 pos.y(),
                 pos.z(),
                 yaw,
                 pitch
-        )));
+        );
+        if (BukkitSchedulerAdapter.isFolia()) {
+            player.teleportAsync(target).exceptionally(throwable -> {
+                LOGGER.error("Error occurred teleporting player asynchronously", throwable);
+                return false;
+            });
+            return true;
+        }
+        return TaskManager.taskManager().sync(() -> player.teleport(target));
     }
 
     @Override
